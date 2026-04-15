@@ -1,0 +1,160 @@
+<%# ============================================
+    APARAITECH — Reusable Header / Navbar Partial
+    ============================================= %>
+<nav class="navbar navbar-expand-lg navbar-dark aparai-navbar sticky-top shadow-sm">
+  <div class="container-fluid px-3 px-lg-4">
+
+    <!-- Brand Logo -->
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <div class="brand-icon">
+        <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="8" fill="#ffffff22"/>
+          <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle"
+                font-family="Arial Black" font-size="18" fill="#fff" font-weight="900">A</text>
+        </svg>
+      </div>
+      <div class="d-flex flex-column lh-1">
+        <span class="brand-name">APARAITECH</span>
+        <span class="brand-sub d-none d-sm-inline">Test Portal</span>
+      </div>
+    </a>
+
+    <!-- Toggler -->
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarNav" aria-controls="navbarNav"
+            aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Nav Links -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+
+        <% if (locals.user) { %>
+
+          <% if (user.role === 'admin') { %>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'dashboard' ? 'active' : '' %>"
+                 href="/admin/dashboard">
+                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'tests' ? 'active' : '' %>"
+                 href="/admin/tests">
+                <i class="bi bi-journal-check me-1"></i>Tests
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'results' ? 'active' : '' %>"
+                 href="/admin/results">
+                <i class="bi bi-bar-chart-line me-1"></i>Results
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'users' ? 'active' : '' %>"
+                 href="/admin/users">
+                <i class="bi bi-people me-1"></i>Users
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'colleges' ? 'active' : '' %>"
+                 href="/admin/colleges">
+                <i class="bi bi-building me-1"></i>Colleges
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'workshops' ? 'active' : '' %>"
+                 href="/admin/workshops">
+                <i class="bi bi-mortarboard me-1"></i>Workshops
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'announce' ? 'active' : '' %>"
+                 href="/admin/announce">
+                <i class="bi bi-megaphone me-1"></i>Announce
+              </a>
+            </li>
+          <% } else { %>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'dashboard' ? 'active' : '' %>"
+                 href="/student/dashboard">
+                <i class="bi bi-house me-1"></i>Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'test' ? 'active' : '' %>"
+                 href="/student/enter-code">
+                <i class="bi bi-pencil-square me-1"></i>Take Test
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'workshops' ? 'active' : '' %>"
+                 href="/student/workshops">
+                <i class="bi bi-mortarboard me-1"></i>Workshops
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'profile' ? 'active' : '' %>"
+                 href="/student/profile">
+                <i class="bi bi-person-circle me-1"></i>Profile
+              </a>
+            </li>
+          <% } %>
+
+          <!-- User Dropdown -->
+          <li class="nav-item dropdown ms-lg-2">
+            <a class="nav-link dropdown-toggle user-dropdown d-flex align-items-center gap-2 px-3"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="user-avatar">
+                <%= (user.name || user.email).charAt(0).toUpperCase() %>
+              </div>
+              <span class="d-none d-md-inline">
+                <%= user.name || user.email.split('@')[0] %>
+              </span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+              <li>
+                <div class="dropdown-header d-flex flex-column">
+                  <span class="fw-bold"><%= user.name || 'User' %></span>
+                  <small class="text-muted"><%= user.email %></small>
+                  <span class="badge bg-primary mt-1 align-self-start">
+                    <%= user.role.toUpperCase() %>
+                  </span>
+                </div>
+              </li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <% if (user.role === 'student') { %>
+              <li>
+                <a class="dropdown-item" href="/student/profile">
+                  <i class="bi bi-person me-2"></i>My Profile
+                </a>
+              </li>
+              <% } %>
+              <li>
+                <a class="dropdown-item text-danger" href="/logout">
+                  <i class="bi bi-box-arrow-right me-2"></i>Logout
+                </a>
+              </li>
+            </ul>
+          </li>
+
+        <!-- PWA Install Button (shown only when installable) -->
+        <li class="nav-item d-none" id="pwaInstallBtn">
+          <button class="btn btn-outline-light btn-sm px-3" onclick="installPWA()">
+            <i class="bi bi-download me-1"></i>Install App
+          </button>
+        </li>
+
+        <% } else { %>
+          <li class="nav-item">
+            <a class="btn btn-outline-light px-4" href="/login">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Login
+            </a>
+          </li>
+        <% } %>
+
+      </ul>
+    </div>
+  </div>
+</nav>

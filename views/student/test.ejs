@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <%- include('../partials/pwa-head') %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+  <style>
+    /* Prevent text selection during test */
+    body { user-select: none; -webkit-user-select: none; }
+    .test-progress-bar { height: 5px; background: var(--gray-200); }
+    .test-progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.3s; }
+    .question-nav-btn {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 2px solid var(--gray-300);
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .question-nav-btn.answered   { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .question-nav-btn.current    { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(33,150,243,0.25); }
+    .question-nav-btn:hover      { border-color: var(--accent); }
+    .sidebar-panel { position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ STICKY TEST HEADER ═══════════════════ -->
+<div class="test-header" id="testHeader">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <span class="fw-bold text-white"><%= test.title %></span>
+        <span class="badge bg-white text-primary ms-2"><%= test.domain %></span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-white small">
+          <i class="bi bi-question-circle me-1"></i>
+          <span id="answeredCount">0</span>/<%= questions.length %>
+        </div>
+        <div class="timer-display" id="timerDisplay">
+          <%= String(Math.floor(durationSeconds/60)).padStart(2,'0') %>:<%= String(durationSeconds%60).padStart(2,'0') %>
+        </div>
+        <button class="btn btn-warning btn-sm fw-semibold" onclick="confirmSubmit()">
+          <i class="bi bi-send-check me-1"></i>Submit
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Progress bar -->
+  <div class="test-progress-bar">
+    <div class="fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB SWITCH WARNING MODAL ══════════════ -->
+<div class="modal fade" id="tabWarningModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning border-2">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Warning!</h5>
+      </div>
+      <div class="modal-body text-center">
+        <i class="bi bi-eye-slash-fill text-warning" style="font-size:3rem;"></i>
+        <h5 class="mt-3">Tab Switch Detected!</h5>
+        <p class="text-muted mb-1">You left the test window.</p>
+        <p>Warning <strong id="warningCount">1</strong> of <strong>3</strong></p>
+        <div class="alert alert-danger border-0 mb-0">
+          After 3 warnings, your test will be <strong>automatically submitted</strong>.
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button class="btn btn-warning fw-bold px-4" onclick="dismissWarning()">
+          <i class="bi bi-arrow-return-left me-1"></i>Return to Test
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SUBMIT CONFIRM MODAL ═════════════════ -->
+<div class="modal fade" id="submitModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Submit Test?</h5>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted">You have answered <strong id="submitAnsweredCount">0</strong> of <strong><%= questions.length %></strong> questions.</p>
+        <div class="alert alert-warning border-0 small">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Once submitted, you cannot attempt this test again.
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal" id="cancelSubmitBtn">Cancel</button>
+        <button class="btn btn-primary fw-semibold" onclick="performSubmit()">
+          <i class="bi bi-send-check me-1"></i>Yes, Submit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN CONTENT ══════════════════════════ -->
+<main class="container py-4">
+  <div class="row g-4">
+
+    <!-- Questions Column -->
+    <div class="col-12 col-lg-9">
+      <% questions.forEach((q, idx) => { %>
+      <div class="question-card" id="question-<%= idx %>">
+        <div class="p-3 pb-2 d-flex align-items-center gap-2">
+          <span class="question-number">Q <%= idx + 1 %></span>
+          <span class="ms-auto badge bg-primary bg-opacity-10 text-primary small">
+            <%= q.marks %> mark<%= q.marks > 1 ? 's' : '' %>
+          </span>
+        </div>
+        <div class="px-3 pb-1">
+          <p class="question-text"><%= q.question %></p>
+        </div>
+        <div class="px-3 pb-3">
+          <% q.options.forEach((opt, oIdx) => { %>
+          <label class="option-label" id="opt-<%= idx %>-<%= oIdx %>"
+                 for="q_<%= idx %>_<%= oIdx %>">
+            <input type="radio" class="option-input"
+                   id="q_<%= idx %>_<%= oIdx %>"
+                   name="q_<%= idx %>"
+                   value="<%= oIdx %>"
+                   data-qidx="<%= idx %>"
+                   data-qid="<%= q._id %>">
+            <div class="option-letter"><%= ['A','B','C','D'][oIdx] %></div>
+            <span><%= opt %></span>
+          </label>
+          <% }) %>
+        </div>
+      </div>
+      <% }) %>
+
+      <div class="text-center mt-2">
+        <button class="btn btn-primary btn-lg px-5 fw-bold" onclick="confirmSubmit()">
+          <i class="bi bi-send-check me-2"></i>Submit Test
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-12 col-lg-3">
+      <div class="sidebar-panel">
+
+        <!-- Question Navigator -->
+        <div class="card mb-3">
+          <div class="card-header py-2">
+            <small class="fw-bold text-uppercase text-muted letter-spacing">Question Navigator</small>
+          </div>
+          <div class="card-body p-3">
+            <div class="d-flex flex-wrap gap-1" id="questionNav">
+              <% questions.forEach((q, idx) => { %>
+              <button class="question-nav-btn" id="nav-<%= idx %>"
+                      onclick="scrollToQuestion(<%= idx %>)">
+                <%= idx + 1 %>
+              </button>
+              <% }) %>
+            </div>
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+              <div class="d-flex align-items-center gap-1 small text-muted">
+                <div style="width:14px;height:14px;border-radius:3px;background:var(--primary);"></div> Answered
+              </div>
+              <div class="d-flex align-items-center gap-1 small text-muted">
+                <div style="width:14px;height:14px;border-radius:3px;border:2px solid #ccc;"></div> Not Answered
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer Card -->
+        <div class="card mb-3">
+          <div class="card-body text-center py-3">
+            <div class="text-muted small mb-1">Time Remaining</div>
+            <div class="timer-display d-inline-block" id="sidebarTimer" style="font-size:1.3rem;">
+              <%= String(Math.floor(durationSeconds/60)).padStart(2,'0') %>:<%= String(durationSeconds%60).padStart(2,'0') %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anti-cheat status -->
+        <div class="card text-center">
+          <div class="card-body py-2">
+            <div class="text-muted small mb-1">Tab Switches</div>
+            <div class="fw-bold fs-5" id="tabSwitchDisplay">0 / 3</div>
+            <div class="mt-1 small text-danger d-none" id="tabWarnText">
+              <i class="bi bi-exclamation-triangle me-1"></i>Warnings active!
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  APARAITECH TEST ENGINE — Anti-Cheat, Persistence & Submit
+// ═══════════════════════════════════════════════════════════
+
+const TOTAL_QUESTIONS  = <%= questions.length %>;
+const DURATION_SECONDS = <%= durationSeconds %>;
+const TEST_ID          = '<%= test._id %>';
+const MAX_TAB_WARNINGS = 3;
+const STORAGE_KEY      = `aparaitech_test_${TEST_ID}`;
+
+// State
+let timeLeft        = DURATION_SECONDS;
+let startTime       = Date.now();
+let tabSwitchCount  = 0;
+let submitted       = false;
+let timerInterval   = null;
+let answers         = {};
+
+// Bootstrap modals
+const tabWarningModal = new bootstrap.Modal(document.getElementById('tabWarningModal'), { backdrop: 'static' });
+const submitModal     = new bootstrap.Modal(document.getElementById('submitModal'), { backdrop: 'static' });
+
+// ── PERSISTENCE: Save to localStorage ────────────────────
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      answers,
+      timeLeft,
+      tabSwitchCount,
+      savedAt: Date.now()
+    }));
+  } catch(e) {}
+}
+
+// ── PERSISTENCE: Load from localStorage ──────────────────
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    const data = JSON.parse(saved);
+
+    // Ignore saved state older than test duration (already expired)
+    const ageSeconds = (Date.now() - data.savedAt) / 1000;
+    if (ageSeconds > DURATION_SECONDS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+
+    // Restore answers
+    answers = data.answers || {};
+
+    // Restore timer (subtract time elapsed since save)
+    const elapsed = Math.floor(ageSeconds);
+    timeLeft = Math.max(0, (data.timeLeft || DURATION_SECONDS) - elapsed);
+
+    // Restore tab switch count
+    tabSwitchCount = data.tabSwitchCount || 0;
+
+    return Object.keys(answers).length > 0;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ── PERSISTENCE: Restore UI from saved answers ───────────
+function restoreUI() {
+  const questionEls = document.querySelectorAll('.option-input');
+  questionEls.forEach(input => {
+    const qId  = input.dataset.qid;
+    const qIdx = parseInt(input.dataset.qidx);
+    const oIdx = parseInt(input.value);
+
+    if (answers[qId] !== undefined && answers[qId] === oIdx) {
+      input.checked = true;
+      const label = document.getElementById(`opt-${qIdx}-${oIdx}`);
+      if (label) label.classList.add('selected');
+      document.getElementById(`nav-${qIdx}`)?.classList.add('answered');
+    }
+  });
+
+  // Restore tab switch display
+  document.getElementById('tabSwitchDisplay').textContent = `${tabSwitchCount} / 3`;
+  if (tabSwitchCount > 0) {
+    document.getElementById('tabWarnText')?.classList.remove('d-none');
+  }
+
+  updateAnsweredCount();
+}
+
+// ── CLEAR saved progress after submit ────────────────────
+function clearProgress() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+// ── FULLSCREEN ────────────────────────────────────────────
+function enterFullscreen() {
+  const el = document.documentElement;
+  if (el.requestFullscreen)            el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+}
+
+// ── ON LOAD: restore or start fresh ──────────────────────
+window.addEventListener('load', () => {
+  enterFullscreen();
+
+  const wasRestored = loadProgress();
+  if (wasRestored) {
+    restoreUI();
+    showRestoredBanner();
+    // Use the smaller of localStorage time vs server time (more accurate)
+    // Server already deducted elapsed time from DURATION_SECONDS on refresh
+    timeLeft = Math.min(timeLeft, DURATION_SECONDS);
+  } else {
+    // Fresh start — use server-provided duration (may be reduced on refresh)
+    timeLeft = DURATION_SECONDS;
+  }
+
+  document.getElementById('timerDisplay').textContent = formatTime(timeLeft);
+  document.getElementById('sidebarTimer').textContent = formatTime(timeLeft);
+  startTimer();
+});
+
+// ── Show "Answers Restored" banner ───────────────────────
+function showRestoredBanner() {
+  const banner = document.createElement('div');
+  banner.className = 'alert alert-success alert-dismissible fade show mx-3 mt-2 small py-2';
+  banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;min-width:300px;text-align:center;';
+  banner.innerHTML = `
+    <i class="bi bi-check-circle-fill me-1"></i>
+    <strong>Progress Restored!</strong> Your previous answers have been loaded.
+    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 4000);
+}
+
+// Re-enter fullscreen if user exits
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && !submitted) {
+    enterFullscreen();
+    handleTabSwitch();
+  }
+});
+
+// ── TIMER ─────────────────────────────────────────────────
+function startTimer() {
+  let tickCount = 0;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    tickCount++;
+    updateTimerUI();
+    // Save progress every 10 seconds
+    if (tickCount % 10 === 0) saveProgress();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      autoSubmit('timer');
+    }
+  }, 1000);
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function updateTimerUI() {
+  const formatted = formatTime(timeLeft);
+  const td = document.getElementById('timerDisplay');
+  const st = document.getElementById('sidebarTimer');
+  [td, st].forEach(el => {
+    el.textContent = formatted;
+    el.classList.remove('warning', 'danger');
+    if (timeLeft <= 60)  el.classList.add('danger');
+    else if (timeLeft <= 300) el.classList.add('warning');
+  });
+}
+
+// ── ANTI-CHEAT: TAB SWITCH ────────────────────────────────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !submitted) handleTabSwitch();
+});
+
+window.addEventListener('blur', () => {
+  if (!submitted) handleTabSwitch();
+});
+
+function handleTabSwitch() {
+  if (submitted) return;
+  tabSwitchCount++;
+  document.getElementById('tabSwitchDisplay').textContent = `${tabSwitchCount} / 3`;
+
+  if (tabSwitchCount >= MAX_TAB_WARNINGS) {
+    autoSubmit('tab-limit');
+    return;
+  }
+
+  if (tabSwitchCount > 0) {
+    document.getElementById('tabWarnText').classList.remove('d-none');
+  }
+
+  document.getElementById('warningCount').textContent = tabSwitchCount;
+  tabWarningModal.show();
+}
+
+function dismissWarning() {
+  tabWarningModal.hide();
+  enterFullscreen();
+}
+
+// ── ANTI-CHEAT: DISABLE RIGHT-CLICK ──────────────────────
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── ANTI-CHEAT: DISABLE COPY/PASTE ───────────────────────
+document.addEventListener('copy',  e => e.preventDefault());
+document.addEventListener('cut',   e => e.preventDefault());
+document.addEventListener('paste', e => e.preventDefault());
+
+// ── ANTI-CHEAT: BLOCK KEYBOARD SHORTCUTS ─────────────────
+document.addEventListener('keydown', (e) => {
+  // Block F12, Ctrl+U, Ctrl+Shift+I, Ctrl+S, Ctrl+A, Alt+Tab
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && ['u','s','a','c','v','p'].includes(e.key.toLowerCase())) ||
+    (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase())) ||
+    (e.altKey && e.key === 'Tab')
+  ) {
+    e.preventDefault();
+  }
+});
+
+// ── ANSWER TRACKING ───────────────────────────────────────
+document.querySelectorAll('.option-input').forEach(input => {
+  input.addEventListener('change', () => {
+    const qIdx = parseInt(input.dataset.qidx);
+    const qId  = input.dataset.qid;
+    const val  = parseInt(input.value);
+
+    // Store answer
+    answers[qId] = val;
+
+    // Update option styling in this question
+    document.querySelectorAll(`[name="q_${qIdx}"]`).forEach((radio, oIdx) => {
+      const label = document.getElementById(`opt-${qIdx}-${oIdx}`);
+      label.classList.toggle('selected', oIdx === val);
+    });
+
+    // Update nav button
+    document.getElementById(`nav-${qIdx}`).classList.add('answered');
+
+    // Update answered count
+    updateAnsweredCount();
+
+    // Save progress to localStorage
+    saveProgress();
+  });
+});
+
+function updateAnsweredCount() {
+  const count = Object.keys(answers).length;
+  document.getElementById('answeredCount').textContent = count;
+  document.getElementById('progressFill').style.width = `${(count / TOTAL_QUESTIONS) * 100}%`;
+}
+
+// ── QUESTION NAVIGATOR ────────────────────────────────────
+function scrollToQuestion(idx) {
+  document.getElementById(`question-${idx}`)
+          .scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Mark current (optional visual)
+  document.querySelectorAll('.question-nav-btn').forEach((btn, i) => {
+    btn.classList.toggle('current', i === idx);
+  });
+}
+
+// ── SUBMIT FLOW ───────────────────────────────────────────
+function confirmSubmit() {
+  if (submitted) return;
+  document.getElementById('submitAnsweredCount').textContent = Object.keys(answers).length;
+  submitModal.show();
+}
+
+function autoSubmit(reason) {
+  if (submitted) return;
+  console.log('Auto-submit triggered by:', reason);
+  // Close modals
+  try { tabWarningModal.hide(); submitModal.hide(); } catch(e) {}
+  performSubmit();
+}
+
+async function performSubmit() {
+  if (submitted) return;
+  submitted = true;
+  clearInterval(timerInterval);
+
+  // Disable UI
+  document.querySelectorAll('.option-input, button').forEach(el => el.disabled = true);
+
+  const timeTaken = Math.round((Date.now() - startTime) / 1000);
+
+  try {
+    const response = await fetch(`/student/test/${TEST_ID}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        answers:        answers,
+        timeTaken:      timeTaken,
+        tabSwitchCount: tabSwitchCount
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.redirect) {
+      clearProgress(); // Remove saved state after successful submit
+      // Exit fullscreen before redirecting
+      if (document.exitFullscreen) document.exitFullscreen();
+      window.location.href = data.redirect;
+    } else if (data.error) {
+      alert('Submission error: ' + data.error);
+      submitted = false;
+    }
+  } catch (err) {
+    console.error('Submission failed:', err);
+    alert('Network error during submission. Please contact admin immediately.');
+    submitted = false;
+  }
+}
+
+// ── PAGE UNLOAD / REFRESH PROTECTION ─────────────────────
+window.addEventListener('beforeunload', (e) => {
+  if (!submitted) {
+    saveProgress(); // Save before leaving
+    e.preventDefault();
+    e.returnValue = 'Your test is in progress. Your answers are saved — you can return to continue.';
+    return e.returnValue;
+  }
+});
+
+// ─────────────────────────────────────────────────────────
+</script>
+</body>
+</html>

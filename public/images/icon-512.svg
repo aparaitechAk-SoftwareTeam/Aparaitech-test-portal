@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="80" fill="#0d47a1"/>
+  <rect x="40" y="40" width="432" height="432" rx="60" fill="#1565c0"/>
+  <text x="256" y="290" font-family="Arial Black, Arial" font-size="240" font-weight="900"
+        fill="white" text-anchor="middle" dominant-baseline="middle">A</text>
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="46" font-weight="bold"
+        fill="#90caf9" text-anchor="middle">APARAITECH</text>
+</svg>

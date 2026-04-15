@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'workshops' }) %>
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between">
+      <div><h1><i class="bi bi-plus-circle me-2"></i>Create Workshop</h1><p>Fill in the details below.</p></div>
+      <a href="/admin/workshops" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    </div>
+  </div>
+</div>
+<main class="container pb-5" style="max-width:700px;">
+  <%- include('../partials/flash') %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <form action="/admin/workshops/create" method="POST">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Workshop Title *</label>
+          <input type="text" class="form-control" name="title" placeholder="e.g. Python Bootcamp" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description</label>
+          <textarea class="form-control" name="description" rows="3" placeholder="What will students learn?"></textarea>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Instructor</label>
+            <input type="text" class="form-control" name="instructor" value="APARAITECH">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">College (optional)</label>
+            <select class="form-select" name="collegeId">
+              <option value="">All Colleges</option>
+              <% colleges.forEach(c => { %>
+                <option value="<%= c._id %>"><%= c.name %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Start Date *</label>
+            <input type="date" class="form-control" name="startDate" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">End Date *</label>
+            <input type="date" class="form-control" name="endDate" required>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Start Time</label>
+            <input type="time" class="form-control" name="startTime" value="10:00">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">End Time</label>
+            <input type="time" class="form-control" name="endTime" value="17:00">
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Venue</label>
+            <input type="text" class="form-control" name="venue" placeholder="e.g. Seminar Hall A">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Max Seats</label>
+            <input type="number" class="form-control" name="maxSeats" value="100" min="1">
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" name="isFree" id="isFreeCheck" onchange="toggleFee(this)">
+            <label class="form-check-label fw-semibold" for="isFreeCheck">Free Workshop</label>
+          </div>
+          <div id="feeField">
+            <label class="form-label fw-semibold">Fee (₹) *</label>
+            <input type="number" class="form-control" name="fee" placeholder="e.g. 499" min="0" step="1">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Tags <small class="text-muted">(comma separated)</small></label>
+          <input type="text" class="form-control" name="tags" placeholder="e.g. Python, AI, Beginners">
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+          <i class="bi bi-plus-circle me-1"></i>Create Workshop
+        </button>
+      </form>
+    </div>
+  </div>
+</main>
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function toggleFee(cb) {
+    document.getElementById('feeField').style.display = cb.checked ? 'none' : 'block';
+  }
+</script>
+</body></html>

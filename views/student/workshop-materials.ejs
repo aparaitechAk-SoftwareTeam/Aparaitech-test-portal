@@ -1,0 +1,92 @@
+<% if (materials.length === 0) { %>
+  <div class="empty-state"><i class="bi bi-inbox"></i><p>Nothing here yet.</p></div>
+<% } else { %>
+<div class="row g-3">
+  <% materials.forEach(m => { %>
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-3">
+          <div class="me-1">
+            <i class="bi bi-<% if (m.type === 'notes') { %>file-text<% } else if (m.type === 'video') { %>play-circle<% } else if (m.type === 'link') { %>link-45deg<% } else { %>clipboard-check<% } %> fs-4 text-primary"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <h6 class="fw-bold mb-0"><%= m.title %></h6>
+                <span class="badge bg-light text-dark border small"><%= m.type.toUpperCase() %></span>
+                <% if (m.isTask) { %><span class="badge bg-warning text-dark small ms-1">TASK</span><% } %>
+              </div>
+              <% if (m.isTask) { %>
+                <% if (submittedTaskIds.has(m._id.toString())) { %>
+                  <% const sub = submissions.find(s => s.materialId.toString() === m._id.toString()); %>
+                  <span class="badge bg-success">
+                    Submitted · <%= sub?.status || 'submitted' %>
+                    <% if (sub?.grade) { %> · <%= sub.grade %><% } %>
+                  </span>
+                <% } else { %>
+                  <span class="badge bg-danger">Not Submitted</span>
+                <% } %>
+              <% } %>
+            </div>
+
+            <% if (m.description) { %><p class="text-muted small mt-1 mb-2"><%= m.description %></p><% } %>
+
+            <% if (m.content && m.type === 'notes') { %>
+              <div class="bg-light rounded p-3 small mb-2" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;"><%= m.content %></div>
+            <% } %>
+
+            <% if (m.content && (m.type === 'video' || m.type === 'link')) { %>
+              <a href="<%= m.content %>" target="_blank" class="btn btn-sm btn-outline-primary mb-2">
+                <i class="bi bi-box-arrow-up-right me-1"></i><%= m.type === 'video' ? 'Watch Video' : 'Open Link' %>
+              </a>
+            <% } %>
+
+            <% if (m.fileUrl) { %>
+              <a href="<%= m.fileUrl %>" target="_blank" class="btn btn-sm btn-outline-success mb-2 ms-1">
+                <i class="bi bi-download me-1"></i>Download File
+              </a>
+            <% } %>
+
+            <% if (m.taskDeadline) { %>
+              <div class="text-muted small mb-2"><i class="bi bi-alarm me-1"></i>Deadline: <%= new Date(m.taskDeadline).toLocaleString('en-IN') %></div>
+            <% } %>
+
+            <!-- Task Submission Form -->
+            <% if (m.isTask && !submittedTaskIds.has(m._id.toString())) { %>
+            <div class="border rounded p-3 mt-2 bg-light">
+              <div class="fw-semibold small mb-2"> Submit Your Task</div>
+              <form action="/student/workshops/<%= workshop._id %>/tasks/<%= m._id %>/submit" method="POST">
+                <div class="mb-2">
+                  <textarea class="form-control form-control-sm" name="submissionText" rows="3"
+                            placeholder="Write your answer or paste your work here..."></textarea>
+                </div>
+                <div class="mb-2">
+                  <input type="url" class="form-control form-control-sm" name="fileUrl"
+                         placeholder="Or paste file/drive link (optional)">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="bi bi-send me-1"></i>Submit Task
+                </button>
+              </form>
+            </div>
+            <% } %>
+
+            <!-- Feedback from admin -->
+            <% if (submittedTaskIds.has(m._id.toString())) { %>
+              <% const sub = submissions.find(s => s.materialId.toString() === m._id.toString()); %>
+              <% if (sub?.feedback) { %>
+                <div class="alert alert-info py-2 px-3 small mt-2">
+                  <strong>Admin Feedback:</strong> <%= sub.feedback %>
+                </div>
+              <% } %>
+            <% } %>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>

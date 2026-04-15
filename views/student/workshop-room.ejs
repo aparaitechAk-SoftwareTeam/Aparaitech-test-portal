@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <%- include('../partials/pwa-head') %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'workshops' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1><i class="bi bi-mortarboard me-2"></i><%= workshop.title %></h1>
+        <p><%= workshop.instructor %> · <%= new Date(workshop.startDate).toLocaleDateString('en-IN') %> – <%= new Date(workshop.endDate).toLocaleDateString('en-IN') %></p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/student/workshops/<%= workshop._id %>/receipt" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-receipt me-1"></i>Receipt
+        </a>
+        <a href="/student/workshops" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i>All Workshops</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <!-- Workshop Info -->
+  <% if (workshop.description) { %>
+  <div class="alert alert-info border-0 mb-4">
+    <i class="bi bi-info-circle me-2"></i><%= workshop.description %>
+  </div>
+  <% } %>
+
+  <!-- ── ATTENDANCE SECTION ── -->
+  <% if (openSessions && openSessions.length > 0) { %>
+  <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #198754 !important;">
+    <div class="card-header" style="background:#d1e7dd;">
+      <span class="section-title text-success">
+        <i class="bi bi-clipboard-check me-2"></i>
+        Attendance Open — Mark Your Attendance Now!
+        <span class="badge bg-success ms-2 blink-badge">LIVE</span>
+      </span>
+    </div>
+    <div class="card-body">
+      <% openSessions.forEach(s => { %>
+        <% const alreadyMarked = markedIds && markedIds.has(s._id.toString()); %>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3 pb-3 border-bottom">
+          <div>
+            <div class="fw-semibold"><%= s.sessionLabel %></div>
+            <div class="text-muted small">Enter the token shared by your instructor to mark attendance</div>
+          </div>
+          <% if (alreadyMarked) { %>
+            <span class="badge bg-success fs-6 px-3 py-2">
+              <i class="bi bi-check-circle me-1"></i>Attendance Marked
+            </span>
+          <% } else { %>
+            <button class="btn btn-success" onclick="openAttendanceModal('<%= s._id %>', '<%= s.sessionLabel %>')">
+              <i class="bi bi-qr-code-scan me-1"></i>Mark Attendance
+            </button>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Attendance History -->
+  <% if (allSessions && allSessions.length > 0) { %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header">
+      <span class="section-title"><i class="bi bi-calendar-check me-2"></i>My Attendance</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table mb-0 small">
+          <thead><tr><th>#</th><th>Session</th><th>Status</th></tr></thead>
+          <tbody>
+            <% allSessions.forEach((s, i) => { %>
+            <tr>
+              <td class="text-muted"><%= i + 1 %></td>
+              <td><%= s.sessionLabel %></td>
+              <td>
+                <% if (markedIds && markedIds.has(s._id.toString())) { %>
+                  <span class="badge bg-success"><i class="bi bi-check me-1"></i>Present</span>
+                <% } else if (s.isOpen) { %>
+                  <span class="badge bg-warning text-dark">Open — Mark Now</span>
+                <% } else { %>
+                  <span class="badge bg-danger">Absent</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Materials & Tasks -->
+  <% if (materials.length === 0) { %>
+    <div class="card"><div class="empty-state"><i class="bi bi-folder-x"></i><p>No materials shared yet. Check back soon!</p></div></div>
+  <% } else { %>
+
+  <!-- Tabs: Notes | Videos | Links | Tasks -->
+  <ul class="nav nav-tabs mb-4" id="materialTabs">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-all">All (<%= materials.length %>)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notes">Notes</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-video">Videos</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">Tasks (<%= materials.filter(m=>m.isTask).length %>)</button></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ALL -->
+    <div class="tab-pane fade show active" id="tab-all">
+      <%- include('./workshop-materials', { materials, submittedTaskIds, submissions, workshop }) %>
+    </div>
+
+    <!-- NOTES -->
+    <div class="tab-pane fade" id="tab-notes">
+      <%- include('./workshop-materials', { materials: materials.filter(m => m.type === 'notes'), submittedTaskIds, submissions, workshop }) %>
+    </div>
+
+    <!-- VIDEOS -->
+    <div class="tab-pane fade" id="tab-video">
+      <%- include('./workshop-materials', { materials: materials.filter(m => m.type === 'video'), submittedTaskIds, submissions, workshop }) %>
+    </div>
+
+    <!-- TASKS -->
+    <div class="tab-pane fade" id="tab-tasks">
+      <%- include('./workshop-materials', { materials: materials.filter(m => m.isTask), submittedTaskIds, submissions, workshop }) %>
+    </div>
+
+  </div>
+  <% } %>
+</main>
+
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Attendance Token Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0" style="background:#198754;color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-clipboard-check me-2"></i>Mark Attendance</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="attendanceForm" method="POST">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">Session: <strong id="attendanceSessionLabel"></strong></p>
+          <label class="form-label fw-semibold">Enter Attendance Token</label>
+          <input type="text" name="token" id="attendanceTokenInput"
+                 class="form-control form-control-lg text-center fw-bold"
+                 style="letter-spacing:0.3em; font-size:1.5rem;"
+                 maxlength="6" placeholder="_ _ _ _ _ _"
+                 autocomplete="off" required
+                 oninput="this.value = this.value.toUpperCase()">
+          <div class="form-text text-center mt-2">Ask your instructor for the 6-character token</div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success px-4">
+            <i class="bi bi-check-lg me-1"></i>Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .blink-badge { animation: blink 1.4s ease-in-out infinite; }
+</style>
+<script>
+  function openAttendanceModal(sessionId, label) {
+    document.getElementById('attendanceSessionLabel').textContent = label;
+    document.getElementById('attendanceTokenInput').value = '';
+    document.getElementById('attendanceForm').action =
+      '/student/workshops/<%= workshop._id %>/attendance/mark';
+    // store sessionId if needed (hidden field approach)
+    new bootstrap.Modal(document.getElementById('attendanceModal')).show();
+    setTimeout(() => document.getElementById('attendanceTokenInput').focus(), 400);
+  }
+</script>
+</body></html>

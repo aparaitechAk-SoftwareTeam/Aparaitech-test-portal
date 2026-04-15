@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+  <style>
+    .report-tabs-wrap {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      position: sticky; top: 56px; z-index: 100;
+    }
+    .report-tabs .nav-link {
+      color: #666; border-radius: 0;
+      border-bottom: 3px solid transparent;
+      padding: 0.75rem 1.2rem; font-size: 0.88rem; font-weight: 500;
+    }
+    .report-tabs .nav-link.active {
+      color: var(--primary, #1565c0);
+      border-bottom-color: var(--primary, #1565c0);
+      background: transparent;
+    }
+    .ws-rev-bar { height: 6px; border-radius: 3px; background: #e9ecef; overflow: hidden; }
+    .ws-rev-bar-fill { height: 100%; border-radius: 3px; background: #198754; }
+    .att-bar { height: 6px; border-radius: 3px; background: #e9ecef; overflow: hidden; }
+  </style>
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'colleges' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1><i class="bi bi-building me-2"></i><%= college.name %></h1>
+        <p><%= college.code %> · <%= college.address || 'No address' %></p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/admin/colleges/<%= college._id %>/download" class="btn btn-success fw-semibold">
+          <i class="bi bi-file-earmark-excel me-1"></i>Full Excel Report
+        </a>
+        <a href="/admin/colleges" class="btn btn-light">
+          <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Summary stat cards ─────────────────────────── -->
+<div style="background:var(--bs-light, #f8f9fa); border-bottom:1px solid #e0e0e0;" class="py-3">
+  <div class="container">
+    <div class="row g-2">
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-primary"><%= students.length %></div>
+          <div class="text-muted small">Students</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-info"><%= results.length %></div>
+          <div class="text-muted small">Test Attempts</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-success"><%= results.filter(r=>r.isPassed).length %></div>
+          <div class="text-muted small">Tests Passed</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-warning"><%= workshopStats.length %></div>
+          <div class="text-muted small">Workshops</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-success">₹<%= totalRevenue.toLocaleString('en-IN') %></div>
+          <div class="text-muted small">Revenue</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="card border-0 text-center py-2 shadow-sm">
+          <div class="fw-bold fs-4 text-purple" style="color:#7c4dff;"><%= totalEnrollments %></div>
+          <div class="text-muted small">Enrollments</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tabs ───────────────────────────────────────── -->
+<div class="report-tabs-wrap shadow-sm">
+  <div class="container">
+    <ul class="nav report-tabs" id="reportTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-tests" type="button">
+          <i class="bi bi-journal-check me-1"></i>Tests
+          <% if (results.length > 0) { %><span class="badge bg-primary bg-opacity-10 text-primary ms-1 small"><%= results.length %></span><% } %>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-workshops" type="button">
+          <i class="bi bi-mortarboard me-1"></i>Workshop Revenue
+          <% if (workshopStats.length > 0) { %><span class="badge bg-success bg-opacity-10 text-success ms-1 small"><%= workshopStats.length %></span><% } %>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-attendance" type="button">
+          <i class="bi bi-clipboard-check me-1"></i>Attendance
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-students" type="button">
+          <i class="bi bi-people me-1"></i>Students
+          <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1 small"><%= students.length %></span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<main class="container pb-5 mt-4">
+  <%- include('../partials/flash') %>
+  <div class="tab-content">
+
+    <!-- ══════════════ TESTS TAB ══════════════ -->
+    <div class="tab-pane fade show active" id="tab-tests">
+
+      <!-- Test-wise summary cards -->
+      <% if (testStats.length > 0) { %>
+      <div class="row g-3 mb-4">
+        <% testStats.forEach(t => { %>
+        <div class="col-12 col-md-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-bold"><%= t.testTitle %></div>
+                <span class="badge bg-secondary"><%= t.totalAttempts %> attempts</span>
+              </div>
+              <div class="row g-2 text-center mb-2">
+                <div class="col-4">
+                  <div class="fw-bold text-success"><%= t.highestScore.toFixed(1) %>%</div>
+                  <div class="text-muted" style="font-size:0.72rem;">Highest</div>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold text-primary"><%= t.avgScore.toFixed(1) %>%</div>
+                  <div class="text-muted" style="font-size:0.72rem;">Average</div>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold text-success"><%= t.passCount %>/<%= t.totalAttempts %></div>
+                  <div class="text-muted" style="font-size:0.72rem;">Passed</div>
+                </div>
+              </div>
+              <div class="progress" style="height:6px;">
+                <div class="progress-bar bg-success" style="width:<%= ((t.passCount/t.totalAttempts)*100).toFixed(0) %>%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
+
+      <!-- Full results table -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header">
+          <span class="section-title"><i class="bi bi-table me-2"></i>All Results (<%= results.length %>)</span>
+        </div>
+        <div class="card-body p-0">
+          <% if (results.length === 0) { %>
+            <div class="empty-state"><i class="bi bi-inbox"></i><p>No results yet.</p></div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead>
+                <tr><th>#</th><th>Student</th><th>Test</th><th>Score</th><th>%</th><th>Status</th><th>Date</th><th></th></tr>
+              </thead>
+              <tbody>
+                <% results.forEach((r, i) => { %>
+                <tr>
+                  <td class="text-muted small"><%= i+1 %></td>
+                  <td>
+                    <div class="fw-semibold small"><%= r.studentName || '—' %></div>
+                    <div class="text-muted" style="font-size:0.75rem;"><%= r.studentEmail %></div>
+                  </td>
+                  <td>
+                    <div class="small fw-semibold"><%= r.testTitle %></div>
+                    <span class="badge bg-light text-dark border" style="font-size:0.7rem;"><%= r.testDomain %></span>
+                  </td>
+                  <td class="fw-bold small"><%= r.score %>/<%= r.totalMarks %></td>
+                  <td>
+                    <span class="fw-bold <%= r.percentage>=80 ? 'text-success' : r.percentage>=50 ? 'text-primary' : 'text-danger' %>">
+                      <%= r.percentage.toFixed(1) %>%
+                    </span>
+                  </td>
+                  <td><span class="badge <%= r.isPassed ? 'bg-success' : 'bg-danger' %>"><%= r.isPassed ? 'Passed' : 'Failed' %></span></td>
+                  <td class="text-muted small"><%= new Date(r.submittedAt).toLocaleDateString('en-IN') %></td>
+                  <td><a href="/admin/results/<%= r._id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ WORKSHOP REVENUE TAB ══════════════ -->
+    <div class="tab-pane fade" id="tab-workshops">
+      <% if (workshopStats.length === 0) { %>
+        <div class="card border-0 shadow-sm">
+          <div class="empty-state">
+            <i class="bi bi-mortarboard"></i>
+            <p>No students from this college are enrolled in any workshops yet.</p>
+          </div>
+        </div>
+      <% } else { %>
+
+      <!-- Revenue summary row -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fw-bold fs-3 text-success">₹<%= totalRevenue.toLocaleString('en-IN') %></div>
+            <div class="text-muted small">Total Revenue</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fw-bold fs-3 text-primary"><%= totalEnrollments %></div>
+            <div class="text-muted small">Total Enrollments</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fw-bold fs-3 text-info"><%= workshopStats.filter(w=>w.workshop.isFree || w.workshop.fee===0).length %></div>
+            <div class="text-muted small">Free Workshops</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm text-center p-3">
+            <div class="fw-bold fs-3 text-warning"><%= workshopStats.filter(w=>w.workshop.fee>0).length %></div>
+            <div class="text-muted small">Paid Workshops</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workshop revenue table -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header">
+          <span class="section-title"><i class="bi bi-currency-rupee me-2"></i>Workshop-wise Revenue</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Workshop</th>
+                  <th>Dates</th>
+                  <th>Fee</th>
+                  <th>Enrolled</th>
+                  <th>Revenue</th>
+                  <th>Revenue share</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% workshopStats.forEach((ws, i) => { %>
+                <% const w = ws.workshop; %>
+                <% const revPct = totalRevenue > 0 ? Math.round(ws.revenue / totalRevenue * 100) : 0; %>
+                <tr>
+                  <td class="text-muted small"><%= i+1 %></td>
+                  <td>
+                    <div class="fw-semibold small"><%= w.title %></div>
+                    <span class="badge <%= w.isFree||w.fee===0 ? 'bg-info bg-opacity-10 text-info' : 'bg-success bg-opacity-10 text-success' %>" style="font-size:0.7rem;">
+                      <%= w.isFree||w.fee===0 ? 'Free' : 'Paid' %>
+                    </span>
+                  </td>
+                  <td class="text-muted small">
+                    <%= new Date(w.startDate).toLocaleDateString('en-IN') %><br>
+                    <span class="text-muted">→ <%= new Date(w.endDate).toLocaleDateString('en-IN') %></span>
+                  </td>
+                  <td class="small fw-semibold"><%= w.isFree||w.fee===0 ? 'Free' : '₹'+w.fee %></td>
+                  <td>
+                    <span class="badge bg-primary bg-opacity-10 text-primary"><%= ws.enrollCount %></span>
+                  </td>
+                  <td class="fw-bold text-success">₹<%= ws.revenue.toLocaleString('en-IN') %></td>
+                  <td style="min-width:100px;">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="ws-rev-bar flex-grow-1">
+                        <div class="ws-rev-bar-fill" style="width:<%= revPct %>%"></div>
+                      </div>
+                      <small class="text-muted"><%= revPct %>%</small>
+                    </div>
+                  </td>
+                  <td>
+                    <a href="/admin/workshops/<%= w._id %>" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+              <tfoot class="table-light fw-bold">
+                <tr>
+                  <td colspan="5" class="text-end">Total</td>
+                  <td class="text-success">₹<%= totalRevenue.toLocaleString('en-IN') %></td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- ══════════════ ATTENDANCE TAB ══════════════ -->
+    <div class="tab-pane fade" id="tab-attendance">
+      <% if (workshopStats.length === 0) { %>
+        <div class="card border-0 shadow-sm">
+          <div class="empty-state">
+            <i class="bi bi-clipboard-x"></i>
+            <p>No workshop attendance data for this college yet.</p>
+          </div>
+        </div>
+      <% } else { %>
+      <div class="row g-3">
+        <% workshopStats.forEach(ws => { %>
+        <% const w = ws.workshop; %>
+        <div class="col-12 col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <span class="section-title small"><i class="bi bi-mortarboard me-1"></i><%= w.title %></span>
+              <a href="/admin/workshops/<%= w._id %>/attendance" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-list-check me-1"></i>Sessions
+              </a>
+            </div>
+            <div class="card-body">
+              <% if (ws.totalSessions === 0) { %>
+                <p class="text-muted small mb-0">No attendance sessions created yet.</p>
+              <% } else { %>
+              <div class="row g-2 text-center mb-3">
+                <div class="col-4">
+                  <div class="fw-bold fs-5 text-primary"><%= ws.totalSessions %></div>
+                  <div class="text-muted small">Sessions</div>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold fs-5 text-success"><%= ws.presentRecords %></div>
+                  <div class="text-muted small">Present marks</div>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold fs-5 <%= ws.attendancePct >= 75 ? 'text-success' : ws.attendancePct >= 50 ? 'text-warning' : 'text-danger' %>">
+                    <%= ws.attendancePct !== null ? ws.attendancePct + '%' : '—' %>
+                  </div>
+                  <div class="text-muted small">Avg attendance</div>
+                </div>
+              </div>
+
+              <% if (ws.attendancePct !== null) { %>
+              <div class="mb-2">
+                <div class="d-flex justify-content-between small mb-1">
+                  <span class="text-muted">Overall attendance rate</span>
+                  <span class="fw-semibold"><%= ws.presentRecords %>/<%= ws.maxPossible %> marks</span>
+                </div>
+                <div class="att-bar">
+                  <div class="progress-bar <%= ws.attendancePct>=75 ? 'bg-success' : ws.attendancePct>=50 ? 'bg-warning' : 'bg-danger' %>"
+                       style="height:6px;width:<%= ws.attendancePct %>%;border-radius:3px;"></div>
+                </div>
+                <div class="form-text mt-1">
+                  <%= ws.enrollCount %> enrolled students × <%= ws.totalSessions %> sessions = <%= ws.maxPossible %> possible marks
+                </div>
+              </div>
+              <% } %>
+              <% } %>
+
+              <div class="mt-2 pt-2 border-top d-flex gap-2 flex-wrap">
+                <% ws.workshopStats || '' %>
+                <a href="/admin/workshops/<%= w._id %>/attendance" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-bar-chart me-1"></i>View Reports
+                </a>
+                <span class="badge bg-primary bg-opacity-10 text-primary align-self-center">
+                  <%= ws.enrollCount %> enrolled
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- ══════════════ STUDENTS TAB ══════════════ -->
+    <div class="tab-pane fade" id="tab-students">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header">
+          <span class="section-title"><i class="bi bi-people me-2"></i>Registered Students (<%= students.length %>)</span>
+        </div>
+        <div class="card-body p-0">
+          <% if (students.length === 0) { %>
+            <div class="empty-state"><i class="bi bi-person-x"></i><p>No students registered from this college yet.</p></div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>Joined</th><th></th></tr></thead>
+              <tbody>
+                <% students.forEach((s, i) => { %>
+                <tr>
+                  <td class="text-muted small"><%= i+1 %></td>
+                  <td class="fw-semibold"><%= s.name || '—' %></td>
+                  <td class="text-muted small"><%= s.email %></td>
+                  <td class="small"><%= s.mobile || '—' %></td>
+                  <td class="text-muted small"><%= new Date(s.createdAt).toLocaleDateString('en-IN') %></td>
+                  <td>
+                    <% if (s.mobile) { %>
+                    <div class="d-flex gap-1">
+                      <a href="tel:<%= s.mobile %>" class="btn btn-sm btn-outline-primary" title="Call"><i class="bi bi-telephone"></i></a>
+                      <a href="https://wa.me/91<%= s.mobile %>" target="_blank" class="btn btn-sm btn-success" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                    </div>
+                    <% } %>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+</main>
+
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

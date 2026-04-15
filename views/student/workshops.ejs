@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <%- include('../partials/pwa-head') %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'workshops' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-mortarboard me-2"></i>Workshops</h1>
+    <p>Enroll in workshops at your college.</p>
+  </div>
+</div>
+
+<main class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <!-- New Workshop Alert -->
+  <% if (newWorkshops.length > 0) { %>
+  <div class="alert alert-warning border-0 d-flex align-items-center gap-2 mb-4 shadow-sm">
+    <i class="bi bi-bell-fill fs-4 text-warning"></i>
+    <div>
+      <strong> New Workshop<%= newWorkshops.length > 1 ? 's' : '' %>!</strong>
+      <span class="ms-1"><%= newWorkshops.map(w => w.title).join(', ') %> — Enroll now!</span>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (workshops.length === 0) { %>
+    <div class="card"><div class="empty-state"><i class="bi bi-mortarboard"></i><p>No workshops available for your college yet.</p></div></div>
+  <% } else { %>
+  <div class="row g-4">
+    <% workshops.forEach(w => { %>
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 border-0 shadow-sm" style="border-radius:16px;overflow:hidden;">
+        <!-- Color header -->
+        <div style="background:linear-gradient(135deg,#0d47a1,#1565c0);padding:20px;color:#fff;">
+          <div class="d-flex justify-content-between align-items-start">
+            <h6 class="fw-bold mb-1"><%= w.title %></h6>
+            <% if (w.isEnrolled) { %>
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enrolled</span>
+            <% } else if (w.isFree || w.fee === 0) { %>
+              <span class="badge bg-warning text-dark">FREE</span>
+            <% } else { %>
+              <span class="badge bg-light text-primary">₹<%= w.fee %></span>
+            <% } %>
+          </div>
+          <div class="small opacity-75 mt-1"><i class="bi bi-person me-1"></i><%= w.instructor %></div>
+        </div>
+        <div class="card-body">
+          <% if (w.description) { %><p class="text-muted small mb-3"><%= w.description.substring(0,100) %><%= w.description.length > 100 ? '...' : '' %></p><% } %>
+          <div class="d-flex flex-column gap-1 mb-3">
+            <% if (w.collegeName) { %><div class="small text-muted"><i class="bi bi-building me-1"></i><%= w.collegeName %></div><% } %>
+            <div class="small text-muted"><i class="bi bi-calendar me-1"></i><%= new Date(w.startDate).toLocaleDateString('en-IN') %> – <%= new Date(w.endDate).toLocaleDateString('en-IN') %></div>
+            <div class="small text-muted"><i class="bi bi-clock me-1"></i><%= w.startTime %> – <%= w.endTime %></div>
+            <% if (w.venue) { %><div class="small text-muted"><i class="bi bi-geo-alt me-1"></i><%= w.venue %></div><% } %>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="small text-muted"><i class="bi bi-people me-1"></i><%= w.enrolledCount %>/<%= w.maxSeats %> seats</div>
+            <% w.tags.forEach(tag => { %><span class="badge bg-light text-dark border small"><%= tag %></span><% }) %>
+          </div>
+          <% if (w.isEnrolled) { %>
+            <a href="/student/workshops/<%= w._id %>" class="btn btn-success w-100 fw-semibold">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Enter Workshop
+            </a>
+          <% } else if (w.seatsLeft <= 0) { %>
+            <button class="btn btn-secondary w-100" disabled>Seats Full</button>
+          <% } else if (w.isFree || w.fee === 0) { %>
+            <button class="btn btn-warning w-100 fw-semibold" onclick="enrollFree('<%= w._id %>', '<%= w.title %>')">
+              <i class="bi bi-mortarboard me-1"></i>Enroll Free
+            </button>
+          <% } else { %>
+            <button class="btn btn-primary w-100 fw-semibold" onclick="payAndEnroll('<%= w._id %>', '<%= w.title %>', <%= w.fee %>)">
+              <i class="bi bi-credit-card me-1"></i>Pay ₹<%= w.fee %> & Enroll
+            </button>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+</main>
+
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const RAZORPAY_KEY = '<%= razorpayKey %>';
+
+async function enrollFree(workshopId, title) {
+  if (!confirm(`Enroll in "${title}" for free?`)) return;
+  try {
+    const res = await fetch(`/student/workshops/${workshopId}/create-order`, { method: 'POST', headers: {'Content-Type':'application/json'} });
+    const data = await res.json();
+    if (data.free && data.redirect) window.location.href = data.redirect;
+    else if (data.alreadyEnrolled) window.location.reload();
+    else alert(data.error || 'Enrollment failed.');
+  } catch(e) { alert('Error. Please try again.'); }
+}
+
+async function payAndEnroll(workshopId, title, fee) {
+  try {
+    const res = await fetch(`/student/workshops/${workshopId}/create-order`, { method: 'POST', headers: {'Content-Type':'application/json'} });
+    const data = await res.json();
+    if (data.alreadyEnrolled) { window.location.reload(); return; }
+    if (data.error) { alert(data.error); return; }
+
+    const options = {
+      key: data.key,
+      amount: data.amount,
+      currency: data.currency,
+      name: data.name,
+      description: data.description,
+      order_id: data.orderId,
+      handler: async function(response) {
+        const verifyRes = await fetch('/student/workshops/verify-payment', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            razorpay_order_id:   response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature:  response.razorpay_signature,
+            workshopId: data.workshopId
+          })
+        });
+        const result = await verifyRes.json();
+        if (result.success) window.location.href = result.redirect;
+        else alert('Payment verification failed. Contact admin.');
+      },
+      prefill: { name: '', email: '' },
+      theme: { color: '#0d47a1' }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch(e) { alert('Payment error. Please try again.'); }
+}
+</script>
+</body></html>

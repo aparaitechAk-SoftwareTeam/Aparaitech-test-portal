@@ -1,0 +1,52 @@
+<!-- PWA Meta Tags -->
+<meta name="application-name" content="APARAITECH">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="APARAITECH">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d47a1">
+<meta name="msapplication-TileColor" content="#0d47a1">
+<meta name="msapplication-navbutton-color" content="#0d47a1">
+
+<!-- Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="/images/icon-192.svg">
+
+<!-- PWA Install + Service Worker Script -->
+<script>
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('[SW] Registered:', reg.scope))
+        .catch(err => console.warn('[SW] Registration failed:', err));
+    });
+  }
+
+  // PWA Install Prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Show install button if it exists on the page
+    const btn = document.getElementById('pwaInstallBtn');
+    if (btn) btn.classList.remove('d-none');
+  });
+
+  function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      deferredPrompt = null;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.classList.add('d-none');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    console.log('[PWA] App installed!');
+    deferredPrompt = null;
+  });
+</script>

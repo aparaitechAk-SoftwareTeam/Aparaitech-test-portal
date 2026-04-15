@@ -1,0 +1,82 @@
+<%# ============================================
+    APARAITECH — Reusable Footer Partial
+    ============================================= %>
+<footer class="aparai-footer mt-auto">
+  <div class="footer-top">
+    <div class="container">
+      <div class="row gy-4 align-items-center">
+
+        <!-- Brand Column -->
+        <div class="col-12 col-md-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="footer-brand-icon">A</div>
+            <div>
+              <div class="footer-brand-name">APARAITECH</div>
+              <div class="footer-brand-sub">Online Test Portal</div>
+            </div>
+          </div>
+          <p class="footer-desc">
+            Empowering learners with modern assessment technology.
+            Fair, secure, and insightful testing for every domain.
+          </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="col-6 col-md-2">
+          <h6 class="footer-heading">Portal</h6>
+          <ul class="footer-links">
+            <% if (locals.user && user.role === 'admin') { %>
+              <li><a href="/admin/dashboard">Dashboard</a></li>
+              <li><a href="/admin/tests">Manage Tests</a></li>
+              <li><a href="/admin/results">View Results</a></li>
+            <% } else if (locals.user) { %>
+              <li><a href="/student/dashboard">Dashboard</a></li>
+              <li><a href="/student/enter-code">Take Test</a></li>
+            <% } else { %>
+              <li><a href="/login">Login</a></li>
+            <% } %>
+          </ul>
+        </div>
+
+        <!-- Company Info -->
+        <div class="col-6 col-md-3">
+          <h6 class="footer-heading">Company</h6>
+          <ul class="footer-links">
+            <li><i class="bi bi-geo-alt me-1"></i> Baramati, Maharashtra 413102</li>
+            <li>
+              <i class="bi bi-envelope me-1"></i>
+              <a href="mailto:info@aparaitechsoftware.org">info@aparaitechsoftware.org</a>
+            </li>
+            <li><i class="bi bi-hash me-1"></i> Reg: 2431000320445474</li>
+          </ul>
+        </div>
+
+        <!-- Security Badges -->
+        <div class="col-12 col-md-3">
+          <h6 class="footer-heading">Security</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="footer-badge"><i class="bi bi-shield-check me-1"></i>Secure Tests</span>
+            <span class="footer-badge"><i class="bi bi-eye-slash me-1"></i>Anti-Cheat</span>
+            
+            <span class="footer-badge"><i class="bi bi-file-earmark-pdf me-1"></i>PDF Reports</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Bottom Bar -->
+  <div class="footer-bottom">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+      <p class="mb-0">
+        &copy; <%= new Date().getFullYear() %> <strong>APARAITECH</strong>.
+        All rights reserved.
+      </p>
+      <p class="mb-0 text-muted small">
+        Registration No: 2431000320445474 &nbsp;|&nbsp;
+        5H4J+RGQ, Anand Nagar Colony, Baramati, Maharashtra 413102
+      </p>
+    </div>
+  </div>
+</footer>

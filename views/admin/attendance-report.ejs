@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'workshops' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1><i class="bi bi-bar-chart me-2"></i><%= session.sessionLabel %></h1>
+        <p><%= workshop.title %> · Attendance Report</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/admin/attendance/<%= session._id %>/download" class="btn btn-success">
+          <i class="bi bi-download me-1"></i>Download Excel
+        </a>
+        <a href="/admin/workshops/<%= workshop._id %>/attendance" class="btn btn-light">
+          <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-4">
+      <div class="card text-center p-3 border-0 shadow-sm">
+        <div class="fw-bold fs-3 text-success"><%= records.length %></div>
+        <div class="text-muted small">Present</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card text-center p-3 border-0 shadow-sm">
+        <div class="fw-bold fs-3 text-danger"><%= absent.length %></div>
+        <div class="text-muted small">Absent</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card text-center p-3 border-0 shadow-sm">
+        <div class="fw-bold fs-3 text-primary"><%= enrolledCount > 0 ? Math.round(records.length / enrolledCount * 100) : 0 %>%</div>
+        <div class="text-muted small">Attendance</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Present -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:#d1e7dd;">
+          <span class="section-title text-success"><i class="bi bi-check-circle me-2"></i>Present (<%= records.length %>)</span>
+        </div>
+        <div class="card-body p-0">
+          <% if (records.length === 0) { %>
+            <div class="empty-state"><i class="bi bi-person-x"></i><p>No one marked yet.</p></div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table mb-0 small">
+              <thead><tr><th>#</th><th>Name</th><th>College</th><th>Time</th></tr></thead>
+              <tbody>
+                <% records.forEach((r, i) => { %>
+                <tr>
+                  <td class="text-muted"><%= i+1 %></td>
+                  <td>
+                    <div class="fw-semibold"><%= r.studentName || '—' %></div>
+                    <div class="text-muted" style="font-size:0.75rem;"><%= r.studentEmail %></div>
+                  </td>
+                  <td class="text-muted"><%= r.collegeName || '—' %></td>
+                  <td class="text-muted"><%= new Date(r.markedAt).toLocaleTimeString('en-IN') %></td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Absent -->
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:#f8d7da;">
+          <span class="section-title text-danger"><i class="bi bi-x-circle me-2"></i>Absent (<%= absent.length %>)</span>
+        </div>
+        <div class="card-body p-0">
+          <% if (absent.length === 0) { %>
+            <div class="empty-state"><i class="bi bi-emoji-smile"></i><p>Full attendance!</p></div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table mb-0 small">
+              <thead><tr><th>#</th><th>Name</th><th>College</th></tr></thead>
+              <tbody>
+                <% absent.forEach((e, i) => { %>
+                <tr>
+                  <td class="text-muted"><%= i+1 %></td>
+                  <td>
+                    <div class="fw-semibold"><%= e.studentName || '—' %></div>
+                    <div class="text-muted" style="font-size:0.75rem;"><%= e.studentEmail %></div>
+                  </td>
+                  <td class="text-muted"><%= e.collegeName || '—' %></td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
