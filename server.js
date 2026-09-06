@@ -13,7 +13,10 @@ const studentRoutes = require('./routes/studentRoutes');
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI is missing from environment variables');
+  process.exit(1);
+}
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => { console.error('❌ MongoDB error:', err.message); process.exit(1); });

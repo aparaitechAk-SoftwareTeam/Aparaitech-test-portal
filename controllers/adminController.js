@@ -926,3 +926,42 @@ exports.saveWaTemplate = (req, res) => {
   }
   res.redirect('/admin/users');
 };
+
+// ── POST /admin/tests/:id/import-questions ────────────
+exports.importQuestions = async (req, res) => {
+  try {
+    const { parseExcelQuestions } = require('../utils/excelImport');
+    const testId = req.params.id;
+
+    const test = await Test.findById(testId);
+    if (!test) {
+      req.flash('error_msg', 'Test not found.');
+      return res.redirect('/admin/tests');
+    }
+
+    if (!req.file) {
+      req.flash('error_msg', 'Please upload an Excel file (.xlsx or .xls).');
+      return res.redirect(`/admin/tests/${testId}/questions`);
+    }
+
+    const { questions, errors } = parseExcelQuestions(req.file.buffer);
+
+    if (questions.length === 0) {
+      req.flash('error_msg', `No valid questions found. ${errors.join(' ')}`);
+      return res.redirect(`/admin/tests/${testId}/questions`);
+    }
+
+    await Question.insertMany(questions.map(q => ({ testId, ...q })));
+
+    const successMsg = `${questions.length} question(s) imported successfully.` +
+      (errors.length ? ` (${errors.length} row(s) skipped: ${errors.join(' ')})` : '');
+
+    req.flash('success_msg', successMsg);
+    res.redirect(`/admin/tests/${testId}/questions`);
+
+  } catch (err) {
+    console.error('Import questions error:', err.message);
+    req.flash('error_msg', 'Failed to import questions. Make sure the file format is correct.');
+    res.redirect(`/admin/tests/${req.params.id}/questions`);
+  }
+};

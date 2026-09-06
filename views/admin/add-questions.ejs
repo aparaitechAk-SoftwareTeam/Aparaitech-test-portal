@@ -33,6 +33,54 @@
 
   <div class="row g-4">
 
+    <!-- ── Excel Import Panel ───────────────────────── -->
+    <div class="col-12">
+      <div class="card border-0" style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-left:4px solid #43a047 !important;">
+        <div class="card-body py-3 px-4">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-file-earmark-excel text-success" style="font-size:2rem;"></i>
+              <div>
+                <div class="fw-bold">Bulk Import via Excel</div>
+                <div class="text-muted small">Upload an .xlsx file to add multiple questions at once.</div>
+              </div>
+            </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <a href="/admin/questions/template" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-download me-1"></i>Download Template
+              </a>
+              <button class="btn btn-sm btn-success" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#importCollapse">
+                <i class="bi bi-upload me-1"></i>Import Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="collapse mt-3" id="importCollapse">
+            <form action="/admin/tests/<%= test._id %>/import-questions" method="POST"
+                  enctype="multipart/form-data" id="importForm">
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-8">
+                  <label class="form-label small fw-semibold">Select Excel File (.xlsx or .xls)</label>
+                  <input type="file" name="questionsFile" class="form-control" accept=".xlsx,.xls" required>
+                </div>
+                <div class="col-12 col-md-4">
+                  <button type="submit" class="btn btn-success w-100" id="importBtn">
+                    <i class="bi bi-cloud-upload me-1"></i>Upload & Import
+                  </button>
+                </div>
+              </div>
+              <div class="form-text mt-2">
+                Required columns: <strong>Question, Option A, Option B, Option C, Option D, Correct Answer</strong>
+                &nbsp;|&nbsp; Optional: Marks, Explanation
+                &nbsp;|&nbsp; Correct Answer: A/B/C/D or 1/2/3/4
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Add Question Form ─────────────────────────── -->
     <div class="col-12 col-lg-5">
       <div class="card sticky-top" style="top:80px;">
@@ -183,6 +231,15 @@
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Adding...';
     btn.disabled = true;
   });
+  // Import form spinner
+  const importForm = document.getElementById('importForm');
+  if (importForm) {
+    importForm.addEventListener('submit', function () {
+      const btn = document.getElementById('importBtn');
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Importing...';
+      btn.disabled = true;
+    });
+  }
 </script>
 </body>
 </html>
