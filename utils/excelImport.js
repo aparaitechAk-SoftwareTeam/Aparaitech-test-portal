@@ -43,7 +43,10 @@ function parseExcelQuestions(buffer) {
       return '';
     };
 
-    const question    = get('question', 'q', 'question text');
+    const rawQuestion = get('question', 'q', 'question text');
+    let question      = rawQuestion.replace(/\?\s*(\[[^\]]+\]|\([^\)]+\))/g, '?');
+    question          = question.replace(/\s*(\[[^\]]+\]|\([^\)]+\))\s*$/g, '');
+    question          = question.replace(/([:;\.!?])\s*(\[[^\]]+\]|\([^\)]+\))/g, '$1').trim();
     const optA        = get('option a', 'a', 'opt a', 'option_a');
     const optB        = get('option b', 'b', 'opt b', 'option_b');
     const optC        = get('option c', 'c', 'opt c', 'option_c');

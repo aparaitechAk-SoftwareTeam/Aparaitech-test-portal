@@ -20,9 +20,14 @@ exports.getLogin = async (req, res) => {
 // ── POST /login/register ───────────────────────────────
 exports.register = async (req, res) => {
   try {
-    const { name, collegeName, email, mobile, password, confirmPassword } = req.body;
+    const { name, collegeName, otherCollegeName, email, mobile, password, confirmPassword } = req.body;
 
-    if (!name || !email || !password || !collegeName || !mobile) {
+    let finalCollegeName = collegeName ? collegeName.trim() : '';
+    if (finalCollegeName === 'Other') {
+      finalCollegeName = otherCollegeName ? otherCollegeName.trim() : '';
+    }
+
+    if (!name || !email || !password || !finalCollegeName || !mobile) {
       req.flash('error_msg', 'All fields are required.');
       return res.redirect('/login');
     }
@@ -48,12 +53,12 @@ exports.register = async (req, res) => {
       return res.redirect('/login');
     }
 
-    // Find college by name to get ID
-    const college = await College.findOne({ name: collegeName.trim() });
+    // Find college by name to get ID (if listed in database)
+    const college = await College.findOne({ name: finalCollegeName });
 
     const user = new User({
       name: name.trim(),
-      collegeName: college ? college.name : collegeName.trim(),
+      collegeName: college ? college.name : finalCollegeName,
       collegeId: college ? college._id : null,
       email: email.toLowerCase().trim(),
       mobile: mobile.trim(),
@@ -124,7 +129,7 @@ exports.adminLogin = async (req, res) => {
 
     if (email !== adminEmail || password !== adminPassword) {
       req.flash('error_msg', 'Invalid admin credentials.');
-      return res.redirect('/login');
+      return res.redirect('/admin/login');
     }
 
     const admin = await User.findOneAndUpdate(
@@ -146,7 +151,7 @@ exports.adminLogin = async (req, res) => {
   } catch (err) {
     console.error('Admin login error:', err.message);
     req.flash('error_msg', 'Login failed. Please try again.');
-    res.redirect('/login');
+    res.redirect('/admin/login');
   }
 };
 

@@ -336,7 +336,13 @@ exports.startTest = async (req, res) => {
     const existingSession = req.session.activeTest;
     if (existingSession && existingSession.testId === test._id.toString()) {
       // Same test already in session — reuse stored question order (no reshuffle)
-      const storedQuestions = existingSession.questions;
+      const storedQuestions = existingSession.questions.map(q => {
+        let qText = String(q.question || '');
+        qText = qText.replace(/\?\s*(\[[^\]]+\]|\([^\)]+\))/g, '?');
+        qText = qText.replace(/\s*(\[[^\]]+\]|\([^\)]+\))\s*$/g, '');
+        qText = qText.replace(/([:;\.!?])\s*(\[[^\]]+\]|\([^\)]+\))/g, '$1').trim();
+        return { ...q, question: qText };
+      });
       const timeElapsed = Math.floor((Date.now() - existingSession.startTime) / 1000);
       const durationSeconds = Math.max(0, test.duration * 60 - timeElapsed);
 
@@ -359,11 +365,22 @@ exports.startTest = async (req, res) => {
       return res.redirect('/student/enter-code');
     }
 
+    // Strip any trailing bracket tags from questions
+    const cleanQuestions = shuffledQuestions.map(q => {
+      const qObj = q.toObject ? q.toObject() : { ...q };
+      let qText = String(qObj.question || '');
+      qText = qText.replace(/\?\s*(\[[^\]]+\]|\([^\)]+\))/g, '?');
+      qText = qText.replace(/\s*(\[[^\]]+\]|\([^\)]+\))\s*$/g, '');
+      qText = qText.replace(/([:;\.!?])\s*(\[[^\]]+\]|\([^\)]+\))/g, '$1').trim();
+      qObj.question = qText;
+      return qObj;
+    });
+
     // Store shuffled questions in session for submission verification
     req.session.activeTest = {
       testId:    test._id.toString(),
       startTime: Date.now(),
-      questions: shuffledQuestions.map(q => ({
+      questions: cleanQuestions.map(q => ({
         _id:           q._id.toString(),
         question:      q.question,
         options:       q.options,
@@ -376,7 +393,7 @@ exports.startTest = async (req, res) => {
     res.render('student/test', {
       title: `${test.title} — APARAITECH`,
       test,
-      questions: shuffledQuestions,
+      questions: cleanQuestions,
       durationSeconds: test.duration * 60
     });
   } catch (err) {
