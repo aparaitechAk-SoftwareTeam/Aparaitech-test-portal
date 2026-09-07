@@ -12,9 +12,11 @@ router.get('/', (req, res) => {
 
 router.get('/login',              redirectIfLoggedIn, authController.getLogin);
 router.get('/admin-login',        redirectIfLoggedIn, authController.getAdminLogin);
+router.get('/admin/login',        redirectIfLoggedIn, authController.getAdminLogin);
 router.post('/login/student',     redirectIfLoggedIn, authController.studentLogin);
 router.post('/login/register',    redirectIfLoggedIn, authController.register);
 router.post('/admin/login',       redirectIfLoggedIn, authController.adminLogin);
+router.post('/admin-login',       redirectIfLoggedIn, authController.adminLogin);
 router.get('/logout',             authController.logout);
 
 module.exports = router;

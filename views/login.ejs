@@ -109,16 +109,30 @@
                 <i class="bi bi-building text-muted"></i>
               </span>
               <% if (colleges && colleges.length > 0) { %>
-                <select class="form-select border-start-0" name="collegeName" required>
+                <select class="form-select border-start-0" name="collegeName" id="collegeSelect" required onchange="handleCollegeChange(this)">
                   <option value="">-- Select your college --</option>
-                  <% colleges.forEach(c => { %>
+                  <% colleges.filter(c => c.name.toLowerCase() !== 'other').forEach(c => { %>
                     <option value="<%= c.name %>"><%= c.name %></option>
                   <% }) %>
+                  <option value="Other">Other (Not listed / Type college name)</option>
                 </select>
               <% } else { %>
                 <input type="text" class="form-control border-start-0 ps-0"
                        name="collegeName" placeholder="Enter your college name" required>
               <% } %>
+            </div>
+          </div>
+
+          <!-- Other College Text Input (Shown when 'Other' is selected) -->
+          <div class="mb-3 d-none" id="otherCollegeWrapper">
+            <label class="form-label">Type Your College Name <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-pencil-square text-muted"></i>
+              </span>
+              <input type="text" class="form-control border-start-0 ps-0"
+                     name="otherCollegeName" id="otherCollegeInput"
+                     placeholder="Enter your college / institution name">
             </div>
           </div>
           <div class="mb-3">
@@ -180,7 +194,12 @@
 
 
 
-    </div><!-- /tab-content -->
+    <!-- Admin Portal Link -->
+    <div class="text-center mt-3">
+      <a href="/admin/login" class="text-muted small text-decoration-none">
+        <i class="bi bi-shield-lock me-1"></i>Admin Portal
+      </a>
+    </div>
 
     <!-- Footer -->
     <div class="text-center mt-4 pt-3 border-top" style="font-size:0.73rem; color:#aaa;">
@@ -208,6 +227,22 @@
   function switchTab(tabId) {
     const tab = new bootstrap.Tab(document.getElementById(tabId));
     tab.show();
+  }
+
+  function handleCollegeChange(select) {
+    const wrapper = document.getElementById('otherCollegeWrapper');
+    const input   = document.getElementById('otherCollegeInput');
+    if (!wrapper || !input) return;
+
+    if (select.value === 'Other') {
+      wrapper.classList.remove('d-none');
+      input.required = true;
+      input.focus();
+    } else {
+      wrapper.classList.add('d-none');
+      input.required = false;
+      input.value = '';
+    }
   }
 
 

@@ -5,6 +5,7 @@
   <title><%= title %></title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <link href="/css/main.css" rel="stylesheet">
 </head>
 <body>
@@ -91,9 +92,29 @@
           <form action="/admin/tests/<%= test._id %>/questions" method="POST" id="addQForm">
 
             <div class="mb-3">
-              <label class="form-label">Question Text <span class="text-danger">*</span></label>
-              <textarea name="question" class="form-control" rows="3"
-                        placeholder="Enter the question here..." required></textarea>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0 fw-semibold">Question Text <span class="text-danger">*</span></label>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" onclick="insertCodeTemplate('addQuestionTextarea')" title="Insert Code Block">
+                    <i class="bi bi-code-slash me-1"></i>Insert Code
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="insertInlineCode('addQuestionTextarea')" title="Insert Inline Code">
+                    <code>`code`</code>
+                  </button>
+                </div>
+              </div>
+              <textarea name="question" id="addQuestionTextarea" class="form-control" rows="4"
+                        placeholder="Enter question or paste code here... (Supports code blocks and line-by-line formatting)" required
+                        oninput="updateLivePreview(this, 'addQLivePreview', 'addQPreviewWrapper')"></textarea>
+
+              <!-- Live Question & Code Preview -->
+              <div class="mt-2 d-none" id="addQPreviewWrapper">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <small class="text-muted fw-bold"><i class="bi bi-eye me-1 text-primary"></i>Live Student Preview:</small>
+                  <small class="text-muted" style="font-size:0.75rem;">Formatted with line-by-line code</small>
+                </div>
+                <div class="p-3 border rounded bg-white question-text" id="addQLivePreview"></div>
+              </div>
             </div>
 
             <div class="mb-2">
@@ -188,7 +209,7 @@
                     </form>
                   </div>
                 </div>
-                <p class="question-text mb-2"><%= q.question %></p>
+                <div class="question-text mb-2"><%- formatQuestion(q.question, { allowCopy: true }) %></div>
                 <div class="d-flex flex-column gap-1">
                   <% q.options.forEach((opt, oIdx) => { %>
                   <div class="d-flex align-items-center gap-2 rounded px-2 py-1
@@ -206,7 +227,7 @@
                 </div>
                 <% if (q.explanation) { %>
                 <div class="mt-2 text-muted small">
-                  <i class="bi bi-lightbulb me-1 text-warning"></i><%= q.explanation %>
+                  <i class="bi bi-lightbulb me-1 text-warning"></i><%- formatQuestion(q.explanation) %>
                 </div>
                 <% } %>
                 <div class="text-end mt-1">
@@ -225,7 +246,47 @@
 
 <%- include('../partials/footer') %>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="/js/code-formatter.js"></script>
 <script>
+  function insertCodeTemplate(textareaId) {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    const template = '```c\n' + (selected || '// Paste code here\nint main() {\n    printf("Hello");\n    return 0;\n}') + '\n```\n';
+    ta.value = ta.value.substring(0, start) + template + ta.value.substring(end);
+    ta.focus();
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  function insertInlineCode(textareaId) {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end) || 'code';
+    const snippet = '`' + selected + '`';
+    ta.value = ta.value.substring(0, start) + snippet + ta.value.substring(end);
+    ta.focus();
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  function updateLivePreview(textarea, previewId, wrapperId) {
+    const preview = document.getElementById(previewId);
+    const wrapper = document.getElementById(wrapperId);
+    if (!preview || !wrapper) return;
+    const val = textarea.value.trim();
+    if (!val) {
+      wrapper.classList.add('d-none');
+      preview.innerHTML = '';
+      return;
+    }
+    wrapper.classList.remove('d-none');
+    preview.innerHTML = window.parseQuestionText ? window.parseQuestionText(val) : val;
+  }
+
   document.getElementById('addQForm').addEventListener('submit', function () {
     const btn = document.getElementById('addQBtn');
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Adding...';

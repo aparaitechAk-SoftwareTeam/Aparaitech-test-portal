@@ -7,10 +7,13 @@
   <%- include('../partials/pwa-head') %>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="/css/main.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <link href="/css/main.css?v=2.1" rel="stylesheet">
   <style>
     /* Prevent text selection during test */
     body { user-select: none; -webkit-user-select: none; }
+    /* Anti-cheat: strictly hide any code copy button during test */
+    .code-copy-btn { display: none !important; }
     .test-progress-bar { height: 5px; background: var(--gray-200); }
     .test-progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.3s; }
     .question-nav-btn {
@@ -27,6 +30,138 @@
     .question-nav-btn.current    { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(33,150,243,0.25); }
     .question-nav-btn:hover      { border-color: var(--accent); }
     .sidebar-panel { position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto; }
+
+    /* ── Live Proctoring Camera Bubble (Circular Bottom-Right) ── */
+    .camera-proctor-box {
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      width: 140px !important;
+      height: 140px !important;
+      background: #0f172a !important;
+      border-radius: 50% !important;
+      border: 3px solid #2563eb !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(37, 99, 235, 0.35) !important;
+      z-index: 99999 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.25s ease !important;
+      user-select: none !important;
+    }
+    .camera-proctor-box:hover {
+      transform: scale(1.06);
+      border-color: #38bdf8 !important;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55), 0 0 0 5px rgba(56, 189, 248, 0.45) !important;
+    }
+    .camera-proctor-video-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .camera-proctor-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      transform: scaleX(-1);
+      display: block;
+    }
+    .camera-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.5px;
+      z-index: 2;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .camera-rec-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+      animation: recPulse 1.2s infinite ease-in-out;
+    }
+    .camera-rec-dot.active {
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+    }
+    @keyframes recPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.8); }
+    }
+    .camera-status-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.94);
+      color: #fff;
+      z-index: 3;
+    }
+    .camera-status-overlay .spinner-border {
+      width: 1.2rem;
+      height: 1.2rem;
+      border-width: 2px;
+    }
+    .camera-status-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+    .camera-status-desc {
+      display: none;
+    }
+    .camera-retry-btn {
+      font-size: 0.62rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 4px;
+    }
+    @media (max-width: 576px) {
+      .camera-proctor-box {
+        width: 110px !important;
+        height: 110px !important;
+        bottom: 16px !important;
+        right: 16px !important;
+        border-width: 2px !important;
+      }
+      .camera-badge {
+        font-size: 0.55rem;
+        padding: 1px 5px;
+        bottom: 5px;
+      }
+      .camera-status-title {
+        font-size: 0.62rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -123,7 +258,7 @@
           </span>
         </div>
         <div class="px-3 pb-1">
-          <p class="question-text"><%= q.question %></p>
+          <div class="question-text"><%- formatQuestion(q.question, { allowCopy: false }) %></div>
         </div>
         <div class="px-3 pb-3">
           <% q.options.forEach((opt, oIdx) => { %>
@@ -206,8 +341,32 @@
   </div>
 </main>
 
-<!-- Bootstrap JS -->
+<!-- ═══════════════ LIVE PROCTORING CAMERA (BOTTOM-RIGHT) ══════════════ -->
+<div class="camera-proctor-box" id="cameraProctorBox" title="Webcam Proctoring Active">
+  <div class="camera-proctor-video-wrap">
+    <div class="camera-badge" id="cameraBadge">
+      <span class="camera-rec-dot" id="cameraRecDot"></span>
+      <span id="cameraBadgeText">REC</span>
+    </div>
+    <video id="proctorVideo" class="camera-proctor-video" autoplay playsinline muted></video>
+
+    <!-- Status / Error Overlay -->
+    <div class="camera-status-overlay" id="cameraStatusOverlay">
+      <div class="spinner-border text-primary mb-1" role="status" id="cameraSpinner"></div>
+      <i class="bi bi-camera-video-off text-danger fs-4 d-none mb-1" id="cameraErrorIcon"></i>
+      <div class="camera-status-title" id="cameraStatusTitle">Starting Camera...</div>
+      <div class="camera-status-desc" id="cameraStatusDesc">Please allow camera access for proctoring.</div>
+      <button class="btn btn-sm btn-primary camera-retry-btn d-none" id="cameraRetryBtn" onclick="initCamera(true)">
+        <i class="bi bi-arrow-clockwise me-1"></i>Enable Camera
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS & Code Formatter -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="/js/code-formatter.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -221,12 +380,14 @@ const MAX_TAB_WARNINGS = 3;
 const STORAGE_KEY      = `aparaitech_test_${TEST_ID}`;
 
 // State
-let timeLeft        = DURATION_SECONDS;
-let startTime       = Date.now();
-let tabSwitchCount  = 0;
-let submitted       = false;
-let timerInterval   = null;
-let answers         = {};
+let timeLeft                = DURATION_SECONDS;
+let startTime               = Date.now();
+let tabSwitchCount          = 0;
+let submitted               = false;
+let timerInterval           = null;
+let answers                 = {};
+let cameraStream            = null;
+let cameraKeepAliveInterval = null;
 
 // Bootstrap modals
 const tabWarningModal = new bootstrap.Modal(document.getElementById('tabWarningModal'), { backdrop: 'static' });
@@ -304,34 +465,194 @@ function clearProgress() {
   try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
 }
 
-// ── FULLSCREEN ────────────────────────────────────────────
-function enterFullscreen() {
-  const el = document.documentElement;
-  if (el.requestFullscreen)            el.requestFullscreen();
-  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+// ── LIVE WEBCAM PROCTORING (BOTTOM-RIGHT) ────────────────
+async function initCamera(userTriggered = false) {
+  const overlay     = document.getElementById('cameraStatusOverlay');
+  const spinner     = document.getElementById('cameraSpinner');
+  const errorIcon   = document.getElementById('cameraErrorIcon');
+  const title       = document.getElementById('cameraStatusTitle');
+  const desc        = document.getElementById('cameraStatusDesc');
+  const retryBtn    = document.getElementById('cameraRetryBtn');
+  const video       = document.getElementById('proctorVideo');
+  const badgeDot    = document.getElementById('cameraRecDot');
+  const badgeText   = document.getElementById('cameraBadgeText');
+
+  if (overlay)   overlay.classList.remove('d-none');
+  if (spinner)   spinner.classList.remove('d-none');
+  if (errorIcon) errorIcon.classList.add('d-none');
+  if (retryBtn)  retryBtn.classList.add('d-none');
+  if (title)     title.textContent = 'Starting Camera...';
+  if (desc)      desc.textContent = 'Please allow camera access when prompted.';
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (spinner)   spinner.classList.add('d-none');
+    if (errorIcon) errorIcon.classList.remove('d-none');
+    if (title)     title.textContent = 'Camera Not Supported';
+    if (desc)      desc.textContent = 'Your browser does not support webcam access or page is not served securely.';
+    return;
+  }
+
+  try {
+    // If an existing stream is active, stop old tracks first
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => {
+        try { t.stop(); } catch(e) {}
+      });
+      cameraStream = null;
+    }
+
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        audio: false
+      });
+    } catch (constraintErr) {
+      console.warn('Constrained camera request failed, falling back to basic video:', constraintErr);
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+    }
+
+    if (video) {
+      video.muted = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('autoplay', '');
+      video.srcObject = cameraStream;
+      try {
+        await video.play();
+      } catch (playErr) {
+        console.warn('Camera video play caught:', playErr);
+      }
+    }
+
+    if (overlay)   overlay.classList.add('d-none');
+    if (badgeDot)  badgeDot.classList.add('active');
+    if (badgeText) badgeText.textContent = 'REC';
+
+    // Watch for stream termination
+    const videoTrack = cameraStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.onended = () => {
+        if (!submitted) {
+          showCameraError('Camera Disconnected', 'Your webcam stream stopped. Please reconnect.');
+        }
+      };
+    }
+
+    // Keep-alive check every 5 seconds to ensure camera is still streaming
+    if (!cameraKeepAliveInterval) {
+      cameraKeepAliveInterval = setInterval(() => {
+        if (submitted) return;
+        if (!cameraStream || !cameraStream.active) {
+          showCameraError('Camera Inactive', 'Continuous webcam proctoring is required.');
+        }
+      }, 5000);
+    }
+  } catch (err) {
+    console.warn('Camera initialization failed:', err);
+    if (spinner)   spinner.classList.add('d-none');
+    if (errorIcon) errorIcon.classList.remove('d-none');
+    if (retryBtn)  retryBtn.classList.remove('d-none');
+
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      if (title) title.textContent = 'Camera Blocked';
+      if (desc)  desc.textContent = 'Camera permission is required. Allow access in browser settings and click retry.';
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      if (title) title.textContent = 'Webcam Not Found';
+      if (desc)  desc.textContent = 'No webcam was detected on this device. Please connect a webcam.';
+    } else {
+      if (title) title.textContent = 'Camera Error';
+      if (desc)  desc.textContent = err.message || 'Unable to start camera.';
+    }
+  }
 }
 
-// ── ON LOAD: restore or start fresh ──────────────────────
-window.addEventListener('load', () => {
+function showCameraError(msgTitle, msgDesc) {
+  const overlay   = document.getElementById('cameraStatusOverlay');
+  const spinner   = document.getElementById('cameraSpinner');
+  const errorIcon = document.getElementById('cameraErrorIcon');
+  const title     = document.getElementById('cameraStatusTitle');
+  const desc      = document.getElementById('cameraStatusDesc');
+  const retryBtn  = document.getElementById('cameraRetryBtn');
+  const badgeDot  = document.getElementById('cameraRecDot');
+  const badgeText = document.getElementById('cameraBadgeText');
+
+  if (overlay)   overlay.classList.remove('d-none');
+  if (spinner)   spinner.classList.add('d-none');
+  if (errorIcon) errorIcon.classList.remove('d-none');
+  if (retryBtn)  retryBtn.classList.remove('d-none');
+  if (title)     title.textContent = msgTitle;
+  if (desc)      desc.textContent = msgDesc;
+  if (badgeDot)  badgeDot.classList.remove('active');
+  if (badgeText) badgeText.textContent = 'CAM OFF';
+}
+
+function stopCamera() {
+  if (cameraKeepAliveInterval) {
+    clearInterval(cameraKeepAliveInterval);
+    cameraKeepAliveInterval = null;
+  }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => {
+      try { track.stop(); } catch(e) {}
+    });
+    cameraStream = null;
+  }
+  const video = document.getElementById('proctorVideo');
+  if (video) {
+    video.srcObject = null;
+  }
+}
+
+// ── FULLSCREEN ────────────────────────────────────────────
+function enterFullscreen() {
+  try {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) {
+      const p = req.call(el);
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {});
+      }
+    }
+  } catch (err) {}
+}
+
+// ── BOOT TEST ENGINE & CAMERA ─────────────────────────────
+function bootTestEngine() {
+  // 1. Immediately start live circular camera proctoring
+  initCamera();
+
+  // 2. Request fullscreen safely
   enterFullscreen();
 
+  // 3. Load or initialize test state
   const wasRestored = loadProgress();
   if (wasRestored) {
     restoreUI();
     showRestoredBanner();
-    // Use the smaller of localStorage time vs server time (more accurate)
-    // Server already deducted elapsed time from DURATION_SECONDS on refresh
     timeLeft = Math.min(timeLeft, DURATION_SECONDS);
   } else {
-    // Fresh start — use server-provided duration (may be reduced on refresh)
     timeLeft = DURATION_SECONDS;
   }
 
-  document.getElementById('timerDisplay').textContent = formatTime(timeLeft);
-  document.getElementById('sidebarTimer').textContent = formatTime(timeLeft);
+  const timerDisplay = document.getElementById('timerDisplay');
+  if (timerDisplay) timerDisplay.textContent = formatTime(timeLeft);
+  const sidebarTimer = document.getElementById('sidebarTimer');
+  if (sidebarTimer) sidebarTimer.textContent = formatTime(timeLeft);
   startTimer();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootTestEngine);
+} else {
+  bootTestEngine();
+}
 
 // ── Show "Answers Restored" banner ───────────────────────
 function showRestoredBanner() {
@@ -503,6 +824,7 @@ async function performSubmit() {
   if (submitted) return;
   submitted = true;
   clearInterval(timerInterval);
+  stopCamera(); // Stop camera proctoring when test ends
 
   // Disable UI
   document.querySelectorAll('.option-input, button').forEach(el => el.disabled = true);
@@ -530,11 +852,13 @@ async function performSubmit() {
     } else if (data.error) {
       alert('Submission error: ' + data.error);
       submitted = false;
+      initCamera();
     }
   } catch (err) {
     console.error('Submission failed:', err);
     alert('Network error during submission. Please contact admin immediately.');
     submitted = false;
+    initCamera();
   }
 }
 
@@ -545,7 +869,13 @@ window.addEventListener('beforeunload', (e) => {
     e.preventDefault();
     e.returnValue = 'Your test is in progress. Your answers are saved — you can return to continue.';
     return e.returnValue;
+  } else {
+    stopCamera();
   }
+});
+
+window.addEventListener('pagehide', () => {
+  stopCamera();
 });
 
 // ─────────────────────────────────────────────────────────
